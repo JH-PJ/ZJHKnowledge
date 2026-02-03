@@ -1,3 +1,4 @@
+
 name: 部署文档
 
 on:
@@ -5,11 +6,8 @@ on:
     branches:
       - main
 
-# 完善权限配置，满足 Pages 部署和写入需求
 permissions:
   contents: write
-  pages: write
-  id-token: write
 
 jobs:
   deploy-gh-pages:
@@ -19,36 +17,34 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          # submodules: true  # 如需 Git 子模块，取消注释
+          # 如果你文档需要 Git 子模块，取消注释下一行
+          # submodules: true
+
+
 
       - name: 设置 Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20  # 降级到 VuePress 兼容的稳定版本（22版本易兼容问题）
+          node-version: 22
           cache: npm
 
       - name: 安装依赖
         run: |
           corepack enable
-          npm install  # 替换 npm ci 为 npm install，避免依赖锁文件问题
+          npm ci
 
       - name: 构建文档
         env:
           NODE_OPTIONS: --max_old_space_size=8192
         run: |-
           npm run docs:build
-          # 关键1：Linux 系统用 touch 创建 .nojekyll，路径改用 / 分隔符
-          touch src/.vuepress/dist/.nojekyll
-          # 额外：生成空配置文件彻底禁用 Jekyll
-          echo "theme: null" > src/.vuepress/dist/_config.yml
+          > src\.vuepress\dist\.nojekyll
 
       - name: 部署文档
         uses: JamesIves/github-pages-deploy-action@v4
+        env:
+          GITHUB_TOKEN: ${{ secrets.ACCESS_TOKEN }}
         with:
-          # 关键2：替换错误的 env 传参为 token 字段，支持内置 GITHUB_TOKEN
-          token: ${{ secrets.GITHUB_TOKEN }}  # 无需手动创建 ACCESS_TOKEN，更安全
+          # 部署文档
           branch: gh-pages
-          # 关键3：路径分隔符改为 Linux 风格 /
-          folder: src/.vuepress/dist
-          clean: true  # 清空 gh-pages 分支旧文件，避免残留
-          commit-message: "docs: deploy VuePress docs ${{ github.sha }}"
+          folder: src\.vuepress\dist
